@@ -7,7 +7,7 @@
   <meta name="description" content="How to delete your THRYVE Android app account and associated data without reinstalling the app.">
   <link rel="stylesheet" href="legal.css">
 </head>
-<body>
+<body data-deletion-api="">
   <main class="page">
     <a class="back" href="index.html">← THRYVE Legal</a>
     <h1>Delete your THRYVE account</h1>
@@ -32,10 +32,29 @@
       and local app data for that account on the device.
     </p>
 
-    <h2>Option 2 — Web / email request (no app reinstall required)</h2>
+    <h2>Option 2 — Web confirmation form (no app reinstall required)</h2>
     <p>
-      If you cannot open the app, no longer have the device, or prefer not to use in-app deletion,
-      email us from the address linked to your THRYVE account:
+      Enter the email address on your THRYVE account. If an account exists for that address,
+      we email a <strong>single-use confirmation link</strong>. Confirming queues deletion of your
+      Auth account and cloud data. We do not tell the browser whether the email is registered.
+    </p>
+    <form id="deletion-form" class="deletion-form">
+      <label for="deletion-email">Account email</label>
+      <div class="deletion-row">
+        <input id="deletion-email" name="email" type="email" required autocomplete="email"
+               placeholder="you@example.com">
+        <button type="submit" id="deletion-submit">Request deletion</button>
+      </div>
+      <p id="deletion-status" class="meta" role="status" aria-live="polite"></p>
+    </form>
+    <p class="meta">
+      If the automated form is unavailable, use Option 3 (email) below. Operators: set
+      <code>data-deletion-api</code> on this page to your public admin API base URL when deployed.
+    </p>
+
+    <h2>Option 3 — Email request (fallback)</h2>
+    <p>
+      Email us from the address linked to your THRYVE account:
     </p>
     <ul>
       <li>
@@ -80,5 +99,66 @@
       <li><a href="terms.html">Terms of Service</a></li>
     </ul>
   </main>
+  <style>
+    .deletion-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+    .deletion-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .deletion-form input[type="email"] {
+      flex: 1 1 220px; padding: 0.55rem 0.7rem; border: 1px solid #e0e0e0; border-radius: 8px; font: inherit;
+    }
+    .deletion-form button {
+      padding: 0.55rem 0.9rem; border: 0; border-radius: 8px; background: #1976d2; color: #fff;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .deletion-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+  <script>
+    (function () {
+      var form = document.getElementById("deletion-form");
+      var statusEl = document.getElementById("deletion-status");
+      var submitBtn = document.getElementById("deletion-submit");
+      var apiBase = (document.body.getAttribute("data-deletion-api") || "").replace(/\/$/, "");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var email = document.getElementById("deletion-email").value.trim();
+        if (!email) return;
+
+        if (!apiBase) {
+          statusEl.textContent =
+            "Automated web confirmation is not connected on this host yet. Use Option 3 (email thryveeapp@gmail.com) or the in-app delete flow.";
+          window.location.href =
+            "mailto:thryveeapp@gmail.com?subject=" +
+            encodeURIComponent("THRYVE account deletion request") +
+            "&body=" +
+            encodeURIComponent("Please delete my THRYVE account.\nAccount email: " + email + "\n");
+          return;
+        }
+
+        submitBtn.disabled = true;
+        statusEl.textContent = "Sending…";
+        fetch(apiBase + "/api/public/deletion-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        })
+          .then(function (res) {
+            if (res.status === 429) throw new Error("Too many requests. Try again later.");
+            if (!res.ok) throw new Error("Request failed (" + res.status + ")");
+            return res.json();
+          })
+          .then(function (data) {
+            statusEl.textContent =
+              (data && data.message) ||
+              "If an account exists for that email, we sent a confirmation link.";
+          })
+          .catch(function (err) {
+            statusEl.textContent = err.message || "Something went wrong.";
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+          });
+      });
+    })();
+  </script>
 </body>
 </html>
