@@ -72,6 +72,14 @@
     <ul>
       <li>Basic device and app information needed for the App to function (for example, OS version, app version)</li>
       <li>Crash and usage analytics through <strong>Firebase Analytics</strong> (Google), in aggregated form where possible</li>
+      <li>
+        Optional <strong>product feature analytics</strong> sent to our admin control plane (when enabled):
+        content-free events such as app open and which features you open (for example journal, gratitude, fasting).
+        These events may include your account identifier while signed in, app version, and coarse metadata.
+        They do <strong>not</strong> include journal text, gratitude notes, Future Me letter bodies, or precise location payloads.
+        Raw events are retained for a limited period (typically up to 90 days); aggregates may be kept longer.
+        When you delete your account, we anonymize or remove identifiers tied to these events.
+      </li>
       <li>Network connectivity status for sync features</li>
     </ul>
 
